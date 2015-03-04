@@ -1,18 +1,17 @@
+/* 
 
+
+  A2 SEI Bus Encoder Arduino Library
+
+  Anthony Good, K3NG
+  anthony.good@gmail.com
+  http://blog.radioartisan.com/
+
+
+*/
 
 //#define DEBUG_SEI
 //#define DEBUG_SEI_SERIAL_PORT
-
-//encoder error codes
-#define SEI_BUS_NO_ERROR 0
-#define SEI_BUS_NOT_ENOUGH_LIGHT 1
-#define SEI_BUS_TOO_MUCH_LIGHT 2
-#define SEI_BUS_MISALIGNMENT_OR_DUST_1 3
-#define SEI_BUS_MISALIGNMENT_OR_DUST_2 4
-#define SEI_BUS_MISALIGNMENT_OR_DUST_3 5
-#define SEI_BUS_HARDWARE_PROBLEM 6
-#define SEI_BUS_FAST_MODE_ERROR 7
-#define SEI_BUS_MULTITURN_POS_NOT_INITIALIZED 8
 
 #define SEI_BUS_A2_ENCODER_SET_ORIGIN 0x01
 #define SEI_BUS_A2_ENCODER_SET_ABSOLUTE_POSITION 0x02
@@ -20,17 +19,19 @@
 #define SEI_BUS_A2_ENCODER_READ_FACTORY_INFO 0x08
 #define SEI_BUS_A2_ENCODER_READ_RESOLUTION 0x09
 #define SEI_BUS_A2_ENCODER_CHANGE_RESOLUTION 0x0A
+#define SEI_BUS_A2_ENCODER_READ_MODE 0x0B
 #define SEI_BUS_A2_ENCODER_CHANGE_MODE_TEMPORARY 0x0C
+#define SEI_BUS_A2_ENCODER_CHANGE_MODE_POWER_UP 0x0D
+#define SEI_BUS_A2_ENCODER_RESET 0x0E
+#define SEI_BUS_A2_ENCODER_CHANGE_BAUD_RATE 0x0F
+#define SEI_BUS_A2_ENCODER_LOOPBACK_MODE 0x10
 
 #define SEI_BUS_A2_ENCODER_CMD_READ_POS 0x10
+#define SEI_BUS_A2_ENCODER_CMD_READ_POS_STATUS 0x20
+#define SEI_BUS_A2_ENCODER_CMD_READ_POS_TIME_STATUS 0x30
 #define SEI_BUS_A2_ENCODER_CMD_STROBE 0x40
 #define SEI_BUS_A2_ENCODER_CMD_SLEEP 0x50
 #define SEI_BUS_A2_ENCODER_CMD_WAKEUP 0x60
-
-#define SEI_BUS_A2_ENCODER_CMD_READ_POS_STATUS 92
-#define SEI_BUS_A2_ENCODER_CMD_READ_POS_TIME_STATUS 93
-
-
 
 /* change mode command bits */
 #define MODE_REVERSE           B00000001
@@ -40,10 +41,28 @@
 #define MODE_INCREMENTAL       B00010000
 #define MODE_DIVIDE_BY_256     B01000000
 
+/* status codes */
+#define STATUS_NO_ERROR               B00000000
+#define STATUS_NOT_ENOUGH_LIGHT       B00010000
+#define STATUS_TOO_MUCH_LIGHT         B00100000
+#define STATUS_MISALIGNMENT_OR_DUST_1 B00110000
+#define STATUS_MISALIGNMENT_OR_DUST_2 B01000000
+#define STATUS_MISALIGNMENT_OR_DUST_3 B01010000
+#define STATUS_HARDWARE_PROBLEM       B01100000
+#define STATUS_FAST_MODE_ERROR        B01110000
+#define STATUS_MULTITURN_NOT_INIT     B10000000
 
+/* baud rates */
+#define BAUD_115200 0x00
+#define BAUD_57600 0x01
+#define BAUD_38400 0x10
+#define BAUD_19200 0x11
+#define BAUD_9600 0x12
+#define BAUD_4800 0x13
+#define BAUD_2400 0x14
+#define BAUD_1200 0x15  
 
-
-//settings
+//user-tweakable settings
 #define SEI_BUS_COMMAND_TIMEOUT_MS 2000
 #define SEI_BUS_A2_ENCODER_CMD_READ_POS_TIMEOUT_MS 1000
 #define SEI_BUS_RECEIVE_BYTES_BUFFER 30
@@ -54,8 +73,8 @@
 
 #define CHECKSUM_BYTES 1
 #define FLUSH_BUFFER_MS 50
-#define PORT_SEND_RECEIVE_LEAD_TIME_MS 0
-#define PORT_SEND_RECEIVE_TAIL_TIME_MS 0
+#define PORT_SEND_RECEIVE_LEAD_TIME_MS 0  // only adjust this if you're having problems
+#define PORT_SEND_RECEIVE_TAIL_TIME_MS 0  // only adjust this if you're having problems
 
 class SEIbus {
 
@@ -74,8 +93,6 @@ public:
    uint8_t a2_encoder_set_absolute_position_single_turn(uint8_t address,unsigned int position);
    uint8_t a2_encoder_set_absolute_position_multi_turn(uint8_t address,unsigned long position);
    uint8_t a2_encoder_read_serial_number(uint8_t address);
-   uint8_t a2_encoder_get_address(unsigned long serial_number);
-   uint8_t a2_encoder_assign_address(unsigned long serial_number,uint8_t address);
    uint8_t a2_encoder_read_factory_info(uint8_t address);
    uint8_t a2_encoder_read_resolution(uint8_t address);
    uint8_t a2_encoder_change_resolution(uint8_t address,unsigned int resolution);
@@ -83,6 +100,8 @@ public:
    uint8_t a2_encoder_change_mode_temporary(uint8_t address,uint8_t mode);
    uint8_t a2_encoder_change_mode_power_up(uint8_t address,uint8_t mode);
    uint8_t a2_encoder_reset(uint8_t address);
+   uint8_t a2_encoder_loopback_test(uint8_t address);
+   uint8_t a2_encoder_change_baud_rate(uint8_t address, uint8_t baud);
    void send_port_byte(uint8_t portbyte);
    uint8_t bus_busy();
 
@@ -99,24 +118,34 @@ public:
 
    /* query results */
 
-   /* SEI_BUS_A2_ENCODER_CMD_READ_POS */
+   /* SEI_BUS_A2_ENCODER_CMD_READ_POS, SEI_BUS_A2_ENCODER_CMD_READ_POS_STATUS, SEI_BUS_A2_ENCODER_CMD_READ_POS_TIME_STATUS */
    unsigned long position;
-
 
    /* SEI_BUS_A2_ENCODER_READ_FACTORY_INFO */
    unsigned int model_number;
    float version_number;
    uint8_t configuration_byte_1;
    uint8_t configuration_byte_2;
-   unsigned long serial_number;
    uint8_t month;
    uint8_t day;
    unsigned int year;
 
+   /* SEI_BUS_A2_ENCODER_READ_SERIAL_NUMBER, SEI_BUS_A2_ENCODER_READ_FACTORY_INFO */
+   unsigned long serial_number;
+
    /* SEI_BUS_A2_ENCODER_READ_RESOLUTION  */
    unsigned int resolution;
 
-   uint8_t status_nibble[];
+   /* SEI_BUS_A2_ENCODER_READ_MODE */
+   uint8_t mode;
+
+   /* SEI_BUS_A2_ENCODER_CMD_READ_POS_STATUS, SEI_BUS_A2_ENCODER_CMD_READ_POS_TIME_STATUS */
+   uint8_t status;
+ 
+   /* SEI_BUS_A2_ENCODER_CMD_READ_POS_TIME_STATUS */
+   unsigned int time;
+
+   uint8_t current_baud_rate;
 
 private:
    void clear_active_command(uint8_t timeout_status);

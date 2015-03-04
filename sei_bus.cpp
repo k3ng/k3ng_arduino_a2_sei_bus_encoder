@@ -1,3 +1,16 @@
+/* 
+
+
+  A2 SEI Bus Encoder Arduino Library
+
+  Anthony Good, K3NG
+  anthony.good@gmail.com
+  http://blog.radioartisan.com/
+
+
+*/
+
+
 #ifndef sei_bus_h
 #define sei_bus_h
 
@@ -80,6 +93,8 @@ void SEIbus::initialize(){
     command_result_ready[x] = 0;
     last_command_status_nibble[x] = 0;    
   }
+
+  current_baud_rate = BAUD_9600;
 
   
 }
@@ -170,6 +185,65 @@ void SEIbus::service(){
             command_in_progress_address = 255;            
         }
         break;
+
+
+      case SEI_BUS_A2_ENCODER_CMD_READ_POS_STATUS:
+        if ((!bus_busy()) && ((awaiting_response_bytes == 0) || ((millis() - last_command_time[command_in_progress_address]) > SEI_BUS_A2_ENCODER_CMD_READ_POS_TIMEOUT_MS))){ 
+            #ifdef DEBUG_SEI
+            Serial.print(F("SEIbus::service: SEI_BUS_A2_ENCODER_CMD_READ_POS_STATUS result raw_bytes: "));
+            //Serial.print(raw_result_number_of_bytes);
+            for (x = 0;x < raw_result_number_of_bytes;x++){
+              Serial.print(" ");
+              Serial.print(raw_result_byte[x]);
+            }
+            Serial.println();
+            #endif //DEBUG_SEI 
+
+            switch(raw_result_number_of_bytes){
+              case 2: position = raw_result_byte[0]; status = raw_result_byte[1]; break;
+              case 3: position = (raw_result_byte[0] * 256) + raw_result_byte[1]; status = raw_result_byte[2]; break;
+              case 5: 
+                position = (raw_result_byte[0] * 16777210) + (raw_result_byte[1] * 65536) + (raw_result_byte[2] * 256) + raw_result_byte[3];
+                status = raw_result_byte[4];
+                break;
+            }
+            command_result_ready[command_in_progress_address] = 1;
+            command_in_progress = 0;
+            command_in_progress_address = 255;            
+        }
+        break;
+
+
+      case SEI_BUS_A2_ENCODER_CMD_READ_POS_TIME_STATUS:
+        if ((!bus_busy()) && ((awaiting_response_bytes == 0) || ((millis() - last_command_time[command_in_progress_address]) > SEI_BUS_A2_ENCODER_CMD_READ_POS_TIMEOUT_MS))){ 
+            #ifdef DEBUG_SEI
+            Serial.print(F("SEIbus::service: SEI_BUS_A2_ENCODER_CMD_READ_POS_STATUS result raw_bytes: "));
+            //Serial.print(raw_result_number_of_bytes);
+            for (x = 0;x < raw_result_number_of_bytes;x++){
+              Serial.print(" ");
+              Serial.print(raw_result_byte[x]);
+            }
+            Serial.println();
+            #endif //DEBUG_SEI 
+
+            switch(raw_result_number_of_bytes){
+              case 4: position = raw_result_byte[0]; time = (raw_result_byte[1] * 256) + raw_result_byte[2]; status = raw_result_byte[3]; break;
+              case 5: 
+                position = (raw_result_byte[0] * 256) + raw_result_byte[1]; 
+                time = (raw_result_byte[2] * 256) + raw_result_byte[3];
+                status = raw_result_byte[4]; break;
+              case 7: 
+                position = (raw_result_byte[0] * 16777210) + (raw_result_byte[1] * 65536) + (raw_result_byte[2] * 256) + raw_result_byte[3];
+                time = (raw_result_byte[4] * 256) + raw_result_byte[5];
+                status = raw_result_byte[6];
+                break;
+            }
+            command_result_ready[command_in_progress_address] = 1;
+            command_in_progress = 0;
+            command_in_progress_address = 255;            
+        }
+        break;
+
       case SEI_BUS_A2_ENCODER_READ_FACTORY_INFO:
         if (awaiting_response_bytes == 0){ 
             #ifdef DEBUG_SEI
@@ -267,6 +341,24 @@ void SEIbus::service(){
         } 
         break;
 
+
+      case SEI_BUS_A2_ENCODER_CHANGE_MODE_POWER_UP:
+        if (awaiting_response_bytes == 0){
+          #ifdef DEBUG_SEI
+          Serial.print(F("SEIbus::service: SEI_BUS_A2_ENCODER_CHANGE_MODE_POWER_UP result raw_bytes: "));
+          //Serial.print(raw_result_number_of_bytes);
+          for (x = 0;x < raw_result_number_of_bytes;x++){
+            Serial.print(" ");
+            Serial.print(raw_result_byte[x]);
+          }
+          Serial.println();
+          #endif //DEBUG_SEI
+          command_result_ready[command_in_progress_address] = 1;
+          command_in_progress = 0;
+          command_in_progress_address = 255; 
+        } 
+        break;
+
       case SEI_BUS_A2_ENCODER_SET_ORIGIN:
         if (awaiting_response_bytes == 0){
           #ifdef DEBUG_SEI
@@ -301,6 +393,44 @@ void SEIbus::service(){
         } 
         break;  
 
+
+      case SEI_BUS_A2_ENCODER_READ_MODE:
+        if (awaiting_response_bytes == 0){
+          #ifdef DEBUG_SEI
+          Serial.print(F("SEIbus::service: SEI_BUS_A2_ENCODER_READ_MODE result raw_bytes: "));
+          //Serial.print(raw_result_number_of_bytes);
+          for (x = 0;x < raw_result_number_of_bytes;x++){
+            Serial.print(" ");
+            Serial.print(raw_result_byte[x]);
+          }
+          Serial.println();
+          #endif //DEBUG_SEI
+          mode = raw_result_byte[0];
+          command_result_ready[command_in_progress_address] = 1;
+          command_in_progress = 0;
+          command_in_progress_address = 255; 
+        } 
+        break; 
+
+
+      case SEI_BUS_A2_ENCODER_RESET:
+        if (awaiting_response_bytes == 0){
+          #ifdef DEBUG_SEI
+          Serial.print(F("SEIbus::service: SEI_BUS_A2_ENCODER_RESET result raw_bytes: "));
+          //Serial.print(raw_result_number_of_bytes);
+          for (x = 0;x < raw_result_number_of_bytes;x++){
+            Serial.print(" ");
+            Serial.print(raw_result_byte[x]);
+          }
+          Serial.println();
+          #endif //DEBUG_SEI
+          mode = raw_result_byte[0];
+          command_result_ready[command_in_progress_address] = 1;
+          command_in_progress = 0;
+          command_in_progress_address = 255; 
+        } 
+        break;         
+
       default:
         #ifdef DEBUG_SEI 
         Serial.print("SEIbus::service: unknown command completed #: ");
@@ -330,6 +460,11 @@ void SEIbus::service(){
       case SEI_BUS_A2_ENCODER_READ_SERIAL_NUMBER: Serial.println(F("SEI_BUS_A2_ENCODER_READ_SERIAL_NUMBER"));break;
       case SEI_BUS_A2_ENCODER_SET_ABSOLUTE_POSITION: Serial.println(F("SEI_BUS_A2_ENCODER_SET_ABSOLUTE_POSITION"));break;
       case SEI_BUS_A2_ENCODER_SET_ORIGIN: Serial.println(F("SEI_BUS_A2_ENCODER_SET_ORIGIN"));break;
+      case SEI_BUS_A2_ENCODER_READ_MODE: Serial.println(F("SEI_BUS_A2_ENCODER_READ_MODE"));break;
+      case SEI_BUS_A2_ENCODER_CHANGE_MODE_POWER_UP: Serial.println(F("SEI_BUS_A2_ENCODER_CHANGE_MODE_POWER_UP"));break;
+      case SEI_BUS_A2_ENCODER_RESET: Serial.println(F("SEI_BUS_A2_ENCODER_RESET"));break;
+      case SEI_BUS_A2_ENCODER_CMD_READ_POS_STATUS: Serial.println(F("SEI_BUS_A2_ENCODER_CMD_READ_POS_STATUS"));break;
+      case SEI_BUS_A2_ENCODER_CMD_READ_POS_TIME_STATUS: Serial.println(F("SEI_BUS_A2_ENCODER_CMD_READ_POS_TIME_STATUS"));break;
       default: Serial.println(F("unknown")); break;
     }
     #endif //DEBUG_SEI    
@@ -380,16 +515,6 @@ flush_incoming_buffer();
 
 uint8_t SEIbus::a2_encoder_read_position(uint8_t address){
 
-  /* send a get position command
-
-     returns: 1 = success, 0 = failure
-
-     result: 1, 2, or 4 bytes
-
-
-   */
-
-
   if ((!command_in_progress) && (address < 0x10)){
     send_one_byte_command(address,4,SEI_BUS_A2_ENCODER_CMD_READ_POS);
   } else {
@@ -399,7 +524,33 @@ uint8_t SEIbus::a2_encoder_read_position(uint8_t address){
   return(1);
 }
 
+//-----------------------------------------------------------------------------------------------------
 
+uint8_t SEIbus::a2_encoder_read_position_and_status(uint8_t address){
+
+  if ((!command_in_progress) && (address < 0x10)){
+    send_one_byte_command(address,5,SEI_BUS_A2_ENCODER_CMD_READ_POS_STATUS);
+  } else {
+    return(0);
+  }
+
+  return(1);
+}
+
+
+
+//-----------------------------------------------------------------------------------------------------
+
+uint8_t SEIbus::a2_encoder_read_position_and_time_and_status(uint8_t address){
+
+  if ((!command_in_progress) && (address < 0x10)){
+    send_one_byte_command(address,5,SEI_BUS_A2_ENCODER_CMD_READ_POS_TIME_STATUS);
+  } else {
+    return(0);
+  }
+
+  return(1);
+}
 
 //-----------------------------------------------------------------------------------------------------
 
@@ -446,6 +597,24 @@ uint8_t SEIbus::a2_encoder_read_resolution(uint8_t address){
   return(1);
 
 }
+
+
+
+
+//-----------------------------------------------------------------------------------------------------
+
+uint8_t SEIbus::a2_encoder_reset(uint8_t address){
+
+  if ((!command_in_progress) && (address < 0x10)){
+    send_two_byte_command(address,CHECKSUM_BYTES,SEI_BUS_A2_ENCODER_RESET);
+  } else {
+    return(0);
+  }
+
+  return(1);
+
+}
+
 //-----------------------------------------------------------------------------------------------------
 uint8_t SEIbus::a2_encoder_change_resolution(uint8_t address,unsigned int resolution){
 
@@ -497,6 +666,35 @@ uint8_t SEIbus::a2_encoder_change_mode_temporary(uint8_t address,uint8_t mode){
 
 
 }
+
+
+
+
+//-----------------------------------------------------------------------------------------------------
+uint8_t SEIbus::a2_encoder_change_mode_power_up(uint8_t address,uint8_t mode){
+
+  if ((!command_in_progress) && (address < 0x10)){
+    flush_incoming_buffer();
+    send_port_byte(0xF0 | address);
+    send_port_byte(SEI_BUS_A2_ENCODER_CHANGE_MODE_POWER_UP);
+    send_port_byte(mode);
+    command_in_progress = 1;
+    command_in_progress_address = address;
+    command_result_ready[command_in_progress_address] = 0;
+    awaiting_response_bytes = CHECKSUM_BYTES;
+    last_command_time[address] = millis();
+    timeout[address] = 0;    
+    raw_result_number_of_bytes = 0;
+    last_command[address] = SEI_BUS_A2_ENCODER_CHANGE_MODE_POWER_UP;
+  } else {
+    return(0);
+  }
+
+  return(1);
+
+
+}
+
 //-----------------------------------------------------------------------------------------------------
 uint8_t SEIbus::a2_encoder_set_absolute_position_single_turn(uint8_t address,unsigned int position){
 
@@ -527,7 +725,41 @@ uint8_t SEIbus::a2_encoder_set_absolute_position_single_turn(uint8_t address,uns
 
 }
 
+//-----------------------------------------------------------------------------------------------------
+uint8_t SEIbus::a2_encoder_set_absolute_position_multi_turn(uint8_t address,unsigned long position){
 
+  uint8_t byte_to_send = 0;
+
+  if ((!command_in_progress) && (address < 0x10)){
+    flush_incoming_buffer();
+    send_port_byte(0xF0 | address);
+    send_port_byte(SEI_BUS_A2_ENCODER_SET_ABSOLUTE_POSITION);
+
+    byte_to_send = (position & 0xff000000UL) >> 24;
+    send_port_byte(byte_to_send);
+    byte_to_send = (position & 0x00ff0000UL) >> 16;
+    send_port_byte(byte_to_send);
+    byte_to_send = (position & 0x0000ff00UL) >>  8;
+    send_port_byte(byte_to_send);
+    byte_to_send = (position & 0x000000ffUL);
+    send_port_byte(byte_to_send);
+
+    command_in_progress = 1;
+    command_in_progress_address = address;
+    command_result_ready[command_in_progress_address] = 0;
+    awaiting_response_bytes = CHECKSUM_BYTES;
+    last_command_time[address] = millis();
+    timeout[address] = 0;    
+    raw_result_number_of_bytes = 0;
+    last_command[address] = SEI_BUS_A2_ENCODER_SET_ABSOLUTE_POSITION;
+  } else {
+    return(0);
+  }
+
+  return(1);
+
+
+}
 
 
 //-----------------------------------------------------------------------------------------------------
@@ -535,6 +767,20 @@ uint8_t SEIbus::a2_encoder_set_origin(uint8_t address){
 
   if ((!command_in_progress) && (address < 0x10)){
     send_two_byte_command(address,CHECKSUM_BYTES,SEI_BUS_A2_ENCODER_SET_ORIGIN);
+  } else {
+    return(0);
+  }
+
+  return(1);
+
+
+}
+
+//-----------------------------------------------------------------------------------------------------
+uint8_t SEIbus::a2_encoder_read_mode(uint8_t address){
+
+  if ((!command_in_progress) && (address < 0x10)){
+    send_two_byte_command(address,1+CHECKSUM_BYTES,SEI_BUS_A2_ENCODER_READ_MODE);
   } else {
     return(0);
   }
@@ -659,6 +905,91 @@ uint8_t SEIbus::bus_busy(){
 
 
 //-----------------------------------------------------------------------------------------------------
+
+uint8_t SEIbus::a2_encoder_loopback_test(uint8_t address){
+
+  int x = 0;
+  unsigned long last_byte_sent_time = 0;
+  uint8_t serial_byte_in = 0;
+
+  if (!command_in_progress){
+    flush_incoming_buffer();
+    send_port_byte(0xF0|address);
+    send_port_byte(SEI_BUS_A2_ENCODER_LOOPBACK_MODE);
+    for (x = 0; x < 256; x++){
+      send_port_byte(x);
+      last_byte_sent_time = millis();
+      while ((serialport->available() == 0) && ((millis() - last_byte_sent_time) < 100)) {}  // wait until we get a byte back or timeout
+      if (serialport->available()){
+        serial_byte_in = serialport->read();
+        if (serial_byte_in != x){
+          Serial.print("SEIbus::a2_encoder_loopback_test: echo byte mismatch; sent: ");
+          Serial.print(x);
+          Serial.print(" received: ");
+          Serial.println(serial_byte_in);
+          delay(360);
+          return(0);          
+        }
+      } else {
+        // no byte received
+        Serial.print("SEIbus::a2_encoder_loopback_test: echo byte not received: ");
+        Serial.println(x);
+        delay(360);
+        return(0);
+      }
+
+    }
+    delay(360);
+
+  } else {
+    return(0);
+  }
+
+  return(1);  
+
+
+}
+
+//-----------------------------------------------------------------------------------------------------
+
+uint8_t SEIbus::a2_encoder_change_baud_rate(uint8_t address, uint8_t baud){
+
+  unsigned long last_byte_sent_time = 0;
+
+  if (!command_in_progress){
+    flush_incoming_buffer();
+    send_port_byte(0xF0|address);
+    send_port_byte(SEI_BUS_A2_ENCODER_CHANGE_BAUD_RATE);
+    send_port_byte(baud);
+    last_byte_sent_time = millis();
+    while ((serialport->available() == 0) && ((millis() - last_byte_sent_time) < 100)) {}  // wait until we get a byte back or timeout
+    if (serialport->available()){
+      serialport->read();
+      current_baud_rate = baud;
+      serialport->end();
+      switch(baud){
+        case BAUD_115200: serialport->begin(115200); break;
+        case BAUD_57600: serialport->begin(57600); break;
+        case BAUD_38400: serialport->begin(38400); break;
+        case BAUD_19200: serialport->begin(19200); break;
+        case BAUD_9600: serialport->begin(9600); break;
+        case BAUD_4800: serialport->begin(4800); break;
+        case BAUD_2400: serialport->begin(2400); break;
+        case BAUD_1200: serialport->begin(1200); break;
+      }         
+    } else {
+      // no byte received
+      return(0);
+    }
+  } else {
+    return(0);
+  }
+
+  return(1);
+
+}
+//-----------------------------------------------------------------------------------------------------
+
 #endif //sei_bus_h
 
 
