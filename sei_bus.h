@@ -3,9 +3,16 @@
 
   A2 SEI Bus Encoder Arduino Library
 
+  Version 1.0.2015030901
+
   Anthony Good, K3NG
   anthony.good@gmail.com
   http://blog.radioartisan.com/
+
+  Project page: http://blog.radioartisan.com/arduino-a2-encoder-library/
+
+  Code repository: https://github.com/k3ng/k3ng_arduino_a2_sei_bus_encoder
+
 
 
 */
@@ -13,9 +20,13 @@
 //#define DEBUG_SEI
 //#define DEBUG_SEI_SERIAL_PORT
 
+#define SEI_BUS_A2_LIBRARY_VERSION "1.0.2015030901"
+
 #define SEI_BUS_A2_ENCODER_SET_ORIGIN 0x01
 #define SEI_BUS_A2_ENCODER_SET_ABSOLUTE_POSITION 0x02
 #define SEI_BUS_A2_ENCODER_READ_SERIAL_NUMBER 0x03
+#define SEI_BUS_A2_ENCODER_CMD_GET_ADDRESS 0x06
+#define SEI_BUS_A2_ENCODER_CMD_ASSIGN_ADDRESS 0x07
 #define SEI_BUS_A2_ENCODER_READ_FACTORY_INFO 0x08
 #define SEI_BUS_A2_ENCODER_READ_RESOLUTION 0x09
 #define SEI_BUS_A2_ENCODER_CHANGE_RESOLUTION 0x0A
@@ -102,6 +113,8 @@ public:
    uint8_t a2_encoder_reset(uint8_t address);
    uint8_t a2_encoder_loopback_test(uint8_t address);
    uint8_t a2_encoder_change_baud_rate(uint8_t address, uint8_t baud);
+   uint8_t a2_encoder_get_address(uint8_t address,unsigned long serial_number);
+   uint8_t a2_encoder_assign_address(uint8_t address,unsigned long serial_number, uint8_t new_address);
    void send_port_byte(uint8_t portbyte);
    uint8_t bus_busy();
 
@@ -120,6 +133,7 @@ public:
 
    /* SEI_BUS_A2_ENCODER_CMD_READ_POS, SEI_BUS_A2_ENCODER_CMD_READ_POS_STATUS, SEI_BUS_A2_ENCODER_CMD_READ_POS_TIME_STATUS */
    unsigned long position;
+   float position_rollover_compensated;
 
    /* SEI_BUS_A2_ENCODER_READ_FACTORY_INFO */
    unsigned int model_number;
@@ -146,6 +160,9 @@ public:
    unsigned int time;
 
    uint8_t current_baud_rate;
+
+   /* SEI_BUS_A2_ENCODER_CMD_GET_ADDRESS */
+   uint8_t returned_address;
 
 private:
    void clear_active_command(uint8_t timeout_status);

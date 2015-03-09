@@ -8,6 +8,9 @@
   anthony.good@gmail.com
   http://blog.radioartisan.com/
 
+  Project page: http://blog.radioartisan.com/arduino-a2-encoder-library/
+
+  Code repository: https://github.com/k3ng/k3ng_arduino_a2_sei_bus_encoder
   
 
 */
@@ -17,10 +20,12 @@
 
 #include "sei_bus.h"
 
-#define RESOLUTION 36000
+#define RESOLUTION 32767 //36000
+#define ENCODER_ADDRESS 0x00
 
 
 SEIbus SEIbus1(&Serial1,9600,pin_sei_bus_busy,pin_sei_bus_send_receive);
+//             (Serial Port,Baud Rate,Busy Pin,Send/Receive Pin)
 
 unsigned long last_bus_busy_print_time = 0;
 
@@ -41,18 +46,34 @@ byte executed_read_mode = 0;
 byte executed_read_position_and_status = 0;
 byte executed_read_position_and_time_and_status = 0;
 
+float normalized_position = 0;
+
+
 void setup() {
 
   delay(500);
   Serial.begin(9600);
+  Serial.print("K3NG A2 Encoder Library Version ");
+  Serial.println(SEI_BUS_A2_LIBRARY_VERSION);
   Serial.println("A2 Encoder Test Code Starting...");
   delay(100);
   SEIbus1.initialize();
   Serial.println("Done initializing...");
-  delay(100);
+  delay(250);
+
+  /*
+  // do a baud rate change (This is not stored in encoder EEPROM.)
+  Serial.print("Changing baud rate to 115200...");
+  if (SEIbus1.a2_encoder_change_baud_rate(ENCODER_ADDRESS,BAUD_115200)){
+    Serial.println("successful!");
+  } else {
+    Serial.println("failed :-(");
+  }
+  delay(250);
+  */
 
   Serial.print("Starting loopback test...");
-  if (SEIbus1.a2_encoder_loopback_test(0x00)){
+  if (SEIbus1.a2_encoder_loopback_test(ENCODER_ADDRESS)){
     Serial.println("completed successfully!");
   } else {
     Serial.println("failed!");
@@ -66,10 +87,10 @@ void loop() {
   // service the SEI bus
   SEIbus1.service();
 
-
-  // execute a change resolution command (1 time)
+/*
+  // execute a reset(1 time)
   if ((!executed_reset) && (SEIbus1.command_in_progress == 0) && (!submitted_command)) {
-    if (SEIbus1.a2_encoder_reset(0x00)){
+    if (SEIbus1.a2_encoder_reset(ENCODER_ADDRESS)){
       submitted_command = 1;
       executed_reset = 1;
     } else {
@@ -77,10 +98,11 @@ void loop() {
     }
     last_comand_submit_time = millis();
   }
+*/
 
   // execute a change resolution command (1 time)
   if ((!executed_change_resolution) && (SEIbus1.command_in_progress == 0) && (!submitted_command)) {
-    if (SEIbus1.a2_encoder_change_resolution(0x00,RESOLUTION)){
+    if (SEIbus1.a2_encoder_change_resolution(ENCODER_ADDRESS,RESOLUTION)){
       submitted_command = 1;
       executed_change_resolution = 1;
     } else {
@@ -91,7 +113,7 @@ void loop() {
 
   // execute a read resolution command (1 time)
   if ((!executed_read_resolution) && (SEIbus1.command_in_progress == 0) && (!submitted_command)) {
-    if (SEIbus1.a2_encoder_read_resolution(0x00)){
+    if (SEIbus1.a2_encoder_read_resolution(ENCODER_ADDRESS)){
       submitted_command = 1;
       executed_read_resolution = 1;
     } else {
@@ -102,7 +124,7 @@ void loop() {
 
   // execute a read serial number command (1 time)
   if ((!executed_read_serial_number) && (SEIbus1.command_in_progress == 0) && (!submitted_command)) {
-    if (SEIbus1.a2_encoder_read_serial_number(0x00)){
+    if (SEIbus1.a2_encoder_read_serial_number(ENCODER_ADDRESS)){
       submitted_command = 1;
       executed_read_serial_number = 1;
     } else {
@@ -113,7 +135,7 @@ void loop() {
 
   // execute a read factory info command (1 time)
   if ((!executed_factory_read_info) && (SEIbus1.command_in_progress == 0) && (!submitted_command)) {
-    if (SEIbus1.a2_encoder_read_factory_info(0x00)){
+    if (SEIbus1.a2_encoder_read_factory_info(ENCODER_ADDRESS)){
       submitted_command = 1;
       executed_factory_read_info = 1;
     } else {
@@ -125,7 +147,7 @@ void loop() {
 /*
   // execute a set absolute position to 0 degrees command (1 time)
   if ((!executed_set_absolute_position_single_turn) && (SEIbus1.command_in_progress == 0) && (!submitted_command)) {
-    if (SEIbus1.a2_encoder_set_absolute_position_single_turn(0x00,0)){
+    if (SEIbus1.a2_encoder_set_absolute_position_single_turn(ENCODER_ADDRESS,0)){
       submitted_command = 1;
       executed_set_absolute_position_single_turn = 1;
     } else {
@@ -138,7 +160,7 @@ void loop() {
 /*
   // execute a change mode temporarily command (1 time)
   if ((!executed_change_mode_temporary) && (SEIbus1.command_in_progress == 0) && (!submitted_command)) {
-    if (SEIbus1.a2_encoder_change_mode_temporary(0x00,MODE_TWO_BYTE_POSITION|MODE_MULTITURN)){
+    if (SEIbus1.a2_encoder_change_mode_temporary(ENCODER_ADDRESS,MODE_TWO_BYTE_POSITION|MODE_MULTITURN)){
       submitted_command = 1;
       executed_change_mode_temporary = 1;
     } else {
@@ -151,7 +173,7 @@ void loop() {
 
   // execute a change mode power up command (1 time)
   if ((!executed_change_mode_power_up) && (SEIbus1.command_in_progress == 0) && (!submitted_command)) {
-    if (SEIbus1.a2_encoder_change_mode_power_up(0x00,MODE_TWO_BYTE_POSITION|MODE_MULTITURN)){
+    if (SEIbus1.a2_encoder_change_mode_power_up(ENCODER_ADDRESS,/*MODE_TWO_BYTE_POSITION|*/MODE_MULTITURN)){
       submitted_command = 1;
       executed_change_mode_power_up = 1;
     } else {
@@ -163,7 +185,7 @@ void loop() {
 
   // execute a set absolute position (multi turn mode) to 0 degrees command (1 time)
   if ((!executed_set_absolute_position_multi_turn) && (SEIbus1.command_in_progress == 0) && (!submitted_command)) {
-    if (SEIbus1.a2_encoder_set_absolute_position_multi_turn(0x00,0)){
+    if (SEIbus1.a2_encoder_set_absolute_position_multi_turn(ENCODER_ADDRESS,0)){
       submitted_command = 1;
       executed_set_absolute_position_multi_turn = 1;
     } else {
@@ -177,7 +199,7 @@ void loop() {
 
   // execute a set origin command (1 time)
   if ((!executed_set_origin) && (SEIbus1.command_in_progress == 0) && (!submitted_command)) {
-    if (SEIbus1.a2_encoder_set_origin(0x00)){
+    if (SEIbus1.a2_encoder_set_origin(ENCODER_ADDRESS)){
       submitted_command = 1;
       executed_set_origin = 1;
     } else {
@@ -192,7 +214,7 @@ void loop() {
 
   // execute a read mode command (1 time)
   if ((!executed_read_mode) && (SEIbus1.command_in_progress == 0) && (!submitted_command)) {
-    if (SEIbus1.a2_encoder_read_mode(0x00)){
+    if (SEIbus1.a2_encoder_read_mode(ENCODER_ADDRESS)){
       submitted_command = 1;
       executed_read_mode = 1;
     } else {
@@ -204,7 +226,7 @@ void loop() {
 /*
   // execute a read position and status command (1 time)
   if ((!executed_read_position_and_status) && (SEIbus1.command_in_progress == 0) && (!submitted_command)) {
-    if (SEIbus1.a2_encoder_read_position_and_status(0x00)){
+    if (SEIbus1.a2_encoder_read_position_and_status(ENCODER_ADDRESS)){
       submitted_command = 1;
       executed_read_position_and_status = 1;
     } else {
@@ -216,7 +238,7 @@ void loop() {
 
   // execute a read position and time and status command (1 time)
   if ((!executed_read_position_and_time_and_status) && (SEIbus1.command_in_progress == 0) && (!submitted_command)) {
-    if (SEIbus1.a2_encoder_read_position_and_time_and_status(0x00)){
+    if (SEIbus1.a2_encoder_read_position_and_time_and_status(ENCODER_ADDRESS)){
       submitted_command = 1;
       executed_read_position_and_time_and_status = 1;
     } else {
@@ -227,7 +249,7 @@ void loop() {
 
   // read position (every 250 mS)
   if (((millis() - last_comand_submit_time) >= 250) && (SEIbus1.command_in_progress == 0) && (!submitted_command)) {
-    if (SEIbus1.a2_encoder_read_position(0x00)){
+    if (SEIbus1.a2_encoder_read_position(ENCODER_ADDRESS)){
       submitted_command = 1;
     } else {
       Serial.println("a2_encoder_read_position unsuccesfully submitted");
@@ -241,11 +263,11 @@ void loop() {
   if ((SEIbus1.command_result_ready[0] == 1) && (submitted_command)){
     switch(SEIbus1.last_command[0]){
       case SEI_BUS_A2_ENCODER_READ_FACTORY_INFO:
-        Serial.print("model:");
+        Serial.print("Model:");
         Serial.print(SEIbus1.model_number);
-        Serial.print(" version:");
+        Serial.print(" Version:");
         Serial.print(SEIbus1.version_number);
-        Serial.print(" serial:");
+        Serial.print(" Serial:");
         Serial.print(SEIbus1.serial_number);
         Serial.print(" ");
         Serial.print(SEIbus1.year);
@@ -271,11 +293,17 @@ void loop() {
           case STATUS_MULTITURN_NOT_INIT: Serial.println("MULTITURN_NOT_INIT"); break;
         }
       case SEI_BUS_A2_ENCODER_CMD_READ_POS:
-        Serial.print("position: ");
-        Serial.println(SEIbus1.position/(float(RESOLUTION)/360.0));
+        Serial.print("Position Raw: ");
+        Serial.print(SEIbus1.position);
+        Serial.print("\tNormalized: ");
+        normalized_position = (SEIbus1.position/(float(RESOLUTION)/360.0));
+        Serial.print(normalized_position);
+        Serial.print("\tRollover Compensated: ");
+        normalized_position = (SEIbus1.position_rollover_compensated/(float(RESOLUTION)/360.0));
+        Serial.println(normalized_position);
         break;
       case SEI_BUS_A2_ENCODER_READ_RESOLUTION:
-        Serial.print("resolution: ");
+        Serial.print("Resolution: ");
         Serial.println(SEIbus1.resolution);
         break;
       case SEI_BUS_A2_ENCODER_CHANGE_RESOLUTION:
@@ -308,10 +336,10 @@ void loop() {
         Serial.println();
         break;
       case SEI_BUS_A2_ENCODER_RESET:
-        Serial.println("Completed reset");
+        Serial.println("Completed reset.");
         break;
       default:
-        Serial.println("Unknown command completed");
+        Serial.println("Unknown command completed.");
         break;
     }
 
