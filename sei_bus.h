@@ -17,10 +17,16 @@
 
 */
 
+#if defined(ARDUINO) && ARDUINO >= 100
+#include "Arduino.h"
+#else
+#include "WProgram.h"
+#endif
+
 //#define DEBUG_SEI
 //#define DEBUG_SEI_SERIAL_PORT
 
-#define SEI_BUS_A2_LIBRARY_VERSION "1.0.2015030901"
+#define SEI_BUS_A2_LIBRARY_VERSION "1.0.2015032601"
 
 #define SEI_BUS_A2_ENCODER_SET_ORIGIN 0x01
 #define SEI_BUS_A2_ENCODER_SET_ABSOLUTE_POSITION 0x02
@@ -115,18 +121,18 @@ public:
    uint8_t a2_encoder_change_baud_rate(uint8_t address, uint8_t baud);
    uint8_t a2_encoder_get_address(uint8_t address,unsigned long serial_number);
    uint8_t a2_encoder_assign_address(uint8_t address,unsigned long serial_number, uint8_t new_address);
-   void send_port_byte(uint8_t portbyte);
+   void send_port_uint8_t(uint8_t portuint8_t);
    uint8_t bus_busy();
 
    uint8_t command_in_progress;         // current command in progress (0 = no command in progress)
    uint8_t command_in_progress_address; // the address of the device with a current command in progress
-   uint8_t awaiting_response_bytes;     // the number of bytes we're waiting to receive in response to a command
+   uint8_t awaiting_response_uint8_ts;     // the number of uint8_ts we're waiting to receive in response to a command
    unsigned long last_command_time[18];
    uint8_t last_command[18];
    uint8_t timeout[18];     // 1 = last command timed out
    uint8_t command_result_ready[18];     // 1 = there is a result ready from the last command
-   uint8_t raw_result_number_of_bytes;
-   uint8_t raw_result_byte[SEI_BUS_RECEIVE_BYTES_BUFFER];
+   uint8_t raw_result_number_of_uint8_ts;
+   uint8_t raw_result_uint8_t[SEI_BUS_RECEIVE_BYTES_BUFFER];
    
 
    /* query results */
@@ -138,8 +144,8 @@ public:
    /* SEI_BUS_A2_ENCODER_READ_FACTORY_INFO */
    unsigned int model_number;
    float version_number;
-   uint8_t configuration_byte_1;
-   uint8_t configuration_byte_2;
+   uint8_t configuration_uint8_t_1;
+   uint8_t configuration_uint8_t_2;
    uint8_t month;
    uint8_t day;
    unsigned int year;
@@ -166,8 +172,8 @@ public:
 
 private:
    void clear_active_command(uint8_t timeout_status);
-   void send_one_byte_command(uint8_t address, uint8_t _awaiting_response_bytes, uint8_t _command);
-   void send_two_byte_command(uint8_t address, uint8_t _awaiting_response_bytes, uint8_t _command);
+   void send_one_uint8_t_command(uint8_t address, uint8_t _awaiting_response_uint8_ts, uint8_t _command);
+   void send_two_uint8_t_command(uint8_t address, uint8_t _awaiting_response_uint8_ts, uint8_t _command);
    void flush_incoming_buffer();
 
 
