@@ -29,7 +29,7 @@ SEIbus SEIbus1(&Serial1,9600,pin_sei_bus_busy,pin_sei_bus_send_receive);
 
 unsigned long last_bus_busy_print_time = 0;
 
-unsigned long last_comand_submit_time = 0;
+unsigned long last_command_submit_time = 0;
 
 byte submitted_command = 0;
 byte executed_reset = 0;
@@ -96,7 +96,7 @@ void loop() {
     } else {
       Serial.println("a2_encoder_reset unsuccesfully submitted");
     }
-    last_comand_submit_time = millis();
+    last_command_submit_time = millis();
   }
 */
 
@@ -108,7 +108,7 @@ void loop() {
     } else {
       Serial.println("a2_encoder_change_resolution unsuccesfully submitted");
     }
-    last_comand_submit_time = millis();
+    last_command_submit_time = millis();
   }
 
   // execute a read resolution command (1 time)
@@ -119,7 +119,7 @@ void loop() {
     } else {
       Serial.println("a2_encoder_read_resolution unsuccesfully submitted");
     }
-    last_comand_submit_time = millis();
+    last_command_submit_time = millis();
   }
 
   // execute a read serial number command (1 time)
@@ -130,7 +130,7 @@ void loop() {
     } else {
       Serial.println("a2_encoder_read_serial_number unsuccesfully submitted");
     }
-    last_comand_submit_time = millis();
+    last_command_submit_time = millis();
   }
 
   // execute a read factory info command (1 time)
@@ -141,7 +141,7 @@ void loop() {
     } else {
       Serial.println("a2_encoder_read_factory_info unsuccesfully submitted");
     }
-    last_comand_submit_time = millis();
+    last_command_submit_time = millis();
   }
 
 /*
@@ -153,7 +153,7 @@ void loop() {
     } else {
       Serial.println("a2_encoder_set_absolute_position_single_turn unsuccesfully submitted");
     }
-    last_comand_submit_time = millis();
+    last_command_submit_time = millis();
   }
 */
 
@@ -166,7 +166,7 @@ void loop() {
     } else {
       Serial.println("a2_encoder_change_mode_temporary unsuccesfully submitted");
     }
-    last_comand_submit_time = millis();
+    last_command_submit_time = millis();
   }
 */
 
@@ -179,7 +179,7 @@ void loop() {
     } else {
       Serial.println("a2_encoder_change_mode_power_up unsuccesfully submitted");
     }
-    last_comand_submit_time = millis();
+    last_command_submit_time = millis();
   }
 
 
@@ -191,7 +191,7 @@ void loop() {
     } else {
       Serial.println("a2_encoder_set_absolute_position_multi_turn unsuccesfully submitted");
     }
-    last_comand_submit_time = millis();
+    last_command_submit_time = millis();
   }
 
  
@@ -205,7 +205,7 @@ void loop() {
     } else {
       Serial.println("a2_encoder_set_origin unsuccesfully submitted");
     }
-    last_comand_submit_time = millis();
+    last_command_submit_time = millis();
   }
 
 */
@@ -220,7 +220,7 @@ void loop() {
     } else {
       Serial.println("a2_encoder_read_mode unsuccesfully submitted");
     }
-    last_comand_submit_time = millis();
+    last_command_submit_time = millis();
   }
 
 /*
@@ -232,7 +232,7 @@ void loop() {
     } else {
       Serial.println("a2_encoder_read_position_and_status unsuccesfully submitted");
     }
-    last_comand_submit_time = millis();
+    last_command_submit_time = millis();
   }
 */
 
@@ -244,17 +244,17 @@ void loop() {
     } else {
       Serial.println("a2_encoder_read_position_and_time_and_status unsuccesfully submitted");
     }
-    last_comand_submit_time = millis();
+    last_command_submit_time = millis();
   }
 
   // read position (every 250 mS)
-  if (((millis() - last_comand_submit_time) >= 250) && (SEIbus1.command_in_progress == 0) && (!submitted_command)) {
+  if (((millis() - last_command_submit_time) >= 250) && (SEIbus1.command_in_progress == 0) && (!submitted_command)) {
     if (SEIbus1.a2_encoder_read_position(ENCODER_ADDRESS)){
       submitted_command = 1;
     } else {
       Serial.println("a2_encoder_read_position unsuccesfully submitted");
     }
-    last_comand_submit_time = millis();
+    last_command_submit_time = millis();
   }
 
 
@@ -347,7 +347,7 @@ void loop() {
   }
 
   // if a command has been in progress for 6 seconds with no result, give up on the command
-  if (((millis() - last_comand_submit_time) > 6000) && (submitted_command)) {submitted_command = 0;}
+  if (((millis() - last_command_submit_time) > 6000) && (submitted_command)) {submitted_command = 0;}
 
 }
 
